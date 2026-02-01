@@ -1,0 +1,42 @@
+{
+  "name": "portfolio-api-playwright",
+  "version": "1.0.0",
+  "description": "Mini fintech API with Playwright API tests for QA portfolio",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "migrate": "tsx src/db/migrate.ts",
+    "seed": "tsx src/db/seed.ts",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "db:check-users": "tsx scripts/db-check-users.ts",
+    "db:check-user": "tsx scripts/db-check-user.ts",
+    "db:check-accounts": "tsx scripts/db-check-accounts.ts",
+    "db:check-account": "tsx scripts/db-check-account.ts",
+    "db:check-transactions": "tsx scripts/db-check-transactions.ts",
+    "db:stats": "tsx scripts/db-stats.ts",
+    "db:verify-integrity": "tsx scripts/db-verify-integrity.ts"
+  },
+  "keywords": ["api", "playwright", "testing", "fintech"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0",
+    "@types/express": "^4.17.21",
+    "@types/pg": "^8.10.9",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0"
+  }
+}
