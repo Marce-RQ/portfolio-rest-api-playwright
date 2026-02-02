@@ -12,7 +12,7 @@ Implement deposit functionality that allows users to add money to their accounts
 
 ## Why
 
-- **State mutation**: Unlike previous phases which only read data, deposits modify account balances—this requires careful handling
+- **State mutation**: Phase 3 creates account records (writes data), while Phase 4 modifies existing account balances by recording transactions and updating balances — this requires careful handling and database transactions.
 - **Data integrity**: We need to ensure that a transaction record is created AND the balance is updated together (no partial updates)
 - **Atomicity**: If either operation fails, both should rollback to prevent inconsistent data
 - **Audit trail**: Every deposit creates a transaction record for compliance and reporting
