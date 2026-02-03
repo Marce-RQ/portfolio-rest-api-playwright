@@ -10,6 +10,8 @@
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
     "test": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test:ui": "playwright test --ui",
     "db:check-users": "tsx scripts/db-check-users.ts",
     "db:check-user": "tsx scripts/db-check-user.ts",
@@ -19,7 +21,12 @@
     "db:stats": "tsx scripts/db-stats.ts",
     "db:verify-integrity": "tsx scripts/db-verify-integrity.ts"
   },
-  "keywords": ["api", "playwright", "testing", "fintech"],
+  "keywords": [
+    "api",
+    "playwright",
+    "testing",
+    "fintech"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -37,6 +44,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.6",
     "typescript": "^5.3.3",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "prettier": "latest"
   }
 }
