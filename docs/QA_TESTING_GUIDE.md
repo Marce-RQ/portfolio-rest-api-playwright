@@ -13,9 +13,30 @@
 
 ---
 
-## What is REST API Testing?
+## What is HTTP?
 
-**REST API** = Application Programming Interface that follows REST (Representational State Transfer) principles.
+"Hypertext Transfer Protocol" is the foundational protocol that enables communication between web browsers (clients) and web servers. It defines how web pages and other resources—like images, videos, and scripts—are requested and delivered over the internet.
+It support methods (GET, POST, PUT, DELETE) to perform operations on resources, such as creating, reading, updating, or deleting data (CRUD).
+
+## What is API?
+
+An API (Application Programming Interface) is a set of rules and protocols that allows different software applications to communicate with each other.
+
+**REST API** = It is a design style for creating web services that use standard HTTP methods (GET, POST, PUT, DELETE) to perform CRUD operations on resources. REST APIs are based on a client-server model, where the client sends requests to a server via a URI (Uniform Resource Identifier), and the server responds with data, typically in JSON or XML format.
+
+## URI vs URL
+
+- URI: Identifies a resource, whether by name, location, or both. Example: urn:isbn:0451450523
+
+  In this case a book can be identifie by its ISBN, no location.
+
+- URL: Is a specific type of URI that not only identifies a resource but also specifies how to locate and access it. Example: https://www.example.com/books/0451450523
+
+  It tells you where to find the book online.
+
+---
+
+## What is REST API Testing?
 
 Think of it as a **waiter in a restaurant**:
 
@@ -35,7 +56,7 @@ Think of it as a **waiter in a restaurant**:
 
 ---
 
-## Does the Framework Matter?
+## Does the API Framework Matter for Testing?
 
 ### Short answer: **No, the testing approach is the same.**
 

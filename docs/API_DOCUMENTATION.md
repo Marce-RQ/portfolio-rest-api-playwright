@@ -1,4 +1,4 @@
-# Portfolio API - REST API Documentation
+# Portfolio - fintech REST API Documentation
 
 **Version**: 1.0.0  
 **Base URL**: `http://localhost:3000`  
