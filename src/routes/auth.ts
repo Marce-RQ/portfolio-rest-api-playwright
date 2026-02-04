@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-productio
 // POST /auth/login
 router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  
+
   // Validation
   if (!email || !password) {
     return res.status(400).json({
@@ -19,14 +19,13 @@ router.post('/login', async (req: Request, res: Response) => {
       },
     });
   }
-  
+
   try {
     // Find user
-    const result = await pool.query(
-      'SELECT id, email, password_hash FROM users WHERE email = $1',
-      [email]
-    );
-    
+    const result = await pool.query('SELECT id, email, password_hash FROM users WHERE email = $1', [
+      email,
+    ]);
+
     if (result.rows.length === 0) {
       return res.status(401).json({
         error: {
@@ -35,12 +34,12 @@ router.post('/login', async (req: Request, res: Response) => {
         },
       });
     }
-    
+
     const user = result.rows[0];
-    
+
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password_hash);
-    
+
     if (!validPassword) {
       return res.status(401).json({
         error: {
@@ -49,12 +48,12 @@ router.post('/login', async (req: Request, res: Response) => {
         },
       });
     }
-    
+
     // Generate JWT
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: '24h',
+      expiresIn: '5s',
     });
-    
+
     return res.status(200).json({ token });
   } catch (error) {
     console.error('Login error:', error);
