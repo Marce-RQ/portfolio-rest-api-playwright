@@ -3,37 +3,36 @@ import bcrypt from 'bcrypt';
 
 async function seedDatabase() {
   const client = await pool.connect();
-  
+
   try {
     console.log('🌱 Seeding database...');
-    
-    // Check if demo user already exists
-    const existingUser = await client.query(
-      'SELECT id FROM users WHERE email = $1',
-      ['demo@qa.com']
-    );
-    
-    if (existingUser.rows.length > 0) {
-      console.log('  ↳ Demo user already exists, skipping seed');
-      return;
-    }
-    
+
+    // Check if demo users already exist
+    const demoEmails = ['demo@qa.com', 'second-demo@qa.com'];
+    const existingUsers = await client.query('SELECT email FROM users WHERE email = ANY($1)', [demoEmails]);
+
+    const existingEmails = existingUsers.rows.map((row: any) => row.email);
+
     // Hash password
     const passwordHash = await bcrypt.hash('demo123', 10);
-    
-    // Insert demo user
-    const userResult = await client.query(
-      `INSERT INTO users (email, password_hash) 
-       VALUES ($1, $2) 
-       RETURNING id, email`,
-      ['demo@qa.com', passwordHash]
-    );
-    
-    const user = userResult.rows[0];
-    console.log(`  ✓ Created demo user: ${user.email}`);
-    console.log(`    Credentials: demo@qa.com / demo123`);
-    console.log(`    User ID: ${user.id}\n`);
-    
+
+    for (const email of demoEmails) {
+      if (existingEmails.includes(email)) {
+        console.log(`  ↳ User ${email} already exists, skipping`);
+        continue;
+      }
+      const userResult = await client.query(
+        `INSERT INTO users (email, password_hash) 
+         VALUES ($1, $2) 
+         RETURNING id, email`,
+        [email, passwordHash]
+      );
+      const user = userResult.rows[0];
+      console.log(`  ✓ Created demo user: ${user.email}`);
+      console.log(`    Credentials: ${user.email} / demo123`);
+      console.log(`    User ID: ${user.id}\n`);
+    }
+
     console.log('✅ Database seeded successfully\n');
   } catch (error) {
     console.error('❌ Seed failed:', error);
