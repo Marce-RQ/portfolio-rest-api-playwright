@@ -1,230 +1,199 @@
 import { test, expect } from '@playwright/test';
+import { getAuthToken, createAccount } from '../helpers/index';
+const BASE_URL = process.env.API_BASE_URL;
 
-const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+test.describe('Deposits Endpoint', () => {
+  test.describe('Happy Path', () => {
+    test('POST /deposits: successful deposit returns transactionId and newBalance', async ({ request }) => {
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token, 'EUR');
+      const amount = 100.5;
 
-// Helper function to get auth token
-async function getAuthToken(request: any): Promise<string> {
-  const response = await request.post(`${BASE_URL}/auth/login`, {
-    data: {
-      email: 'demo@qa.com',
-      password: 'demo123',
-    },
-  });
-  const { token } = await response.json();
-  return token;
-}
+      // Make a deposit
+      const response = await request.post(`${BASE_URL}/deposits`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          accountId: accountId,
+          amount: amount,
+          reference: `Test deposit`,
+        },
+      });
+      const body = await response.json();
 
-// Helper function to create an account
-async function createAccount(request: any, token: string, currency = 'EUR'): Promise<string> {
-  const response = await request.post(`${BASE_URL}/accounts`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    data: {
-      currency,
-    },
-  });
-  const { id } = await response.json();
-  return id;
-}
+      expect(response.status()).toBe(201);
+      expect(typeof body.transactionId).toBe('string');
+      expect(body.newBalance).toBe(amount);
+    });
 
-test.describe('Deposits API', () => {
-  test('POST /deposits - successful deposit increases balance', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    // Make a deposit
-    const depositResponse = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-        amount: 100.50,
-        reference: 'Test deposit',
-      },
+    test('POST /deposits: multiple deposits accumulate correctly', async ({ request }) => {
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token, 'EUR');
+
+      // First deposit
+      const firstDepositResponse = await request.post(`${BASE_URL}/deposits`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          accountId: accountId,
+          amount: 40,
+          reference: `First deposit`,
+        },
+      });
+      const firstDepositBody = await firstDepositResponse.json();
+      expect(firstDepositResponse.status()).toBe(201);
+      expect(firstDepositBody.newBalance).toBe(40);
+
+      // Second deposit
+      const secondDepositResponse = await request.post(`${BASE_URL}/deposits`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          accountId: accountId,
+          amount: 60,
+          reference: `Second deposit`,
+        },
+      });
+      const secondDepositBody = await secondDepositResponse.json();
+      expect(secondDepositResponse.status()).toBe(201);
+      expect(secondDepositBody.newBalance).toBe(100);
     });
-    
-    expect(depositResponse.status()).toBe(201);
-    
-    const depositBody = await depositResponse.json();
-    expect(depositBody).toHaveProperty('transactionId');
-    expect(depositBody.newBalance).toBe(100.50);
-    expect(typeof depositBody.transactionId).toBe('string');
-    
-    // Verify balance was updated
-    const accountResponse = await request.get(`${BASE_URL}/accounts/${accountId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+
+    test.describe('Validation and Error Handling', () => {
+      test('POST /deposits: amount = 0 returns 400 with VALIDATION_ERROR and helpful message', async ({
+        request,
+      }) => {
+        const token = await getAuthToken(request);
+        const accountId = await createAccount(request, token, 'EUR');
+        const amount = 0;
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            accountId: accountId,
+            amount: amount,
+          },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(400);
+        expect(body.error.code).toBe('VALIDATION_ERROR');
+        expect(body.error.message).toBe('amount must be greater than 0');
+      });
+
+      test('POST /deposits: negative amount returns 400 with VALIDATION_ERROR and helpful message', async ({
+        request,
+      }) => {
+        const token = await getAuthToken(request);
+        const accountId = await createAccount(request, token, 'EUR');
+        const amount = -10;
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            accountId: accountId,
+            amount: amount,
+          },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(400);
+        expect(body.error.code).toBe('VALIDATION_ERROR');
+        expect(body.error.message).toBe('amount must be greater than 0');
+      });
+
+      test('POST /deposits: missing accountId returns 400 with VALIDATION_ERROR', async ({ request }) => {
+        const token = await getAuthToken(request);
+        const amount = 50;
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { amount },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(400);
+        expect(body.error.code).toBe('VALIDATION_ERROR');
+        expect(body.error.message).toBe('accountId is required');
+      });
+
+      test('POST /deposits: unknown accountId returns 404 with helpful message', async ({ request }) => {
+        const token = await getAuthToken(request);
+        const unknownAccountId = '11111111-2222-3333-44b4-55fe55555a55';
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            accountId: unknownAccountId,
+            amount: 50,
+          },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(404);
+        expect(body.error.code).toBe('NOT_FOUND');
+        expect(body.error.message).toBe('Account not found');
+      });
+
+      test('POST /deposits: missing amount returns 400 with helpful message', async ({ request }) => {
+        const token = await getAuthToken(request);
+        const accountId = await createAccount(request, token);
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { accountId },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(400);
+        expect(body.error.message).toBe('amount must be a number');
+      });
+
+      test('POST /deposits: deposit with "string as amount" returns 400 with helpful message', async ({
+        request,
+      }) => {
+        const token = await getAuthToken(request);
+        const accountId = await createAccount(request, token);
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { accountId, amount: 'string-amount' },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(400);
+        expect(body.error.message).toBe('amount must be a number');
+      });
+
+      test('POST /deposits: missing token returns 401 with UNAUTHORIZED', async ({ request }) => {
+        const accountId = await createAccount(request, await getAuthToken(request));
+
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          data: {
+            accountId,
+            amount: 50,
+          },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(401);
+        expect(body.error.code).toBe('UNAUTHORIZED');
+        expect(body.error.message).toBe('Missing or invalid authorization header');
+      });
     });
-    
-    const accountBody = await accountResponse.json();
-    expect(accountBody.balance).toBe(100.50);
-  });
-  
-  test('POST /deposits - multiple deposits accumulate correctly', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    // First deposit
-    await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-        amount: 50,
-      },
+
+    test('POST /deposits: invalid token returns 401 with UNAUTHORIZED', async ({ request }) => {
+      const accountId = await createAccount(request, await getAuthToken(request));
+
+      const response = await request.post(`${BASE_URL}/deposits`, {
+        headers: { Authorization: `Bearer invalid-token` },
+        data: {
+          accountId,
+          amount: 50,
+        },
+      });
+      const body = await response.json();
+
+      expect(response.status()).toBe(401);
+      expect(body.error.code).toBe('UNAUTHORIZED');
+      expect(body.error.message).toBe('Invalid or expired token');
     });
-    
-    // Second deposit
-    const secondDeposit = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-        amount: 75.25,
-      },
-    });
-    
-    const body = await secondDeposit.json();
-    expect(body.newBalance).toBe(125.25);
-  });
-  
-  test('POST /deposits - amount <= 0 returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-        amount: 0,
-      },
-    });
-    
-    expect(response.status()).toBe(400);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('greater than 0');
-  });
-  
-  test('POST /deposits - negative amount returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-        amount: -50,
-      },
-    });
-    
-    expect(response.status()).toBe(400);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-  });
-  
-  test('POST /deposits - unknown account returns 404', async ({ request }) => {
-    const token = await getAuthToken(request);
-    
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId: '00000000-0000-0000-0000-000000000000',
-        amount: 100,
-      },
-    });
-    
-    expect(response.status()).toBe(404);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('NOT_FOUND');
-    expect(body.error.message).toContain('Account not found');
-  });
-  
-  test('POST /deposits - missing token returns 401', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      data: {
-        accountId: '00000000-0000-0000-0000-000000000000',
-        amount: 100,
-      },
-    });
-    
-    expect(response.status()).toBe(401);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('UNAUTHORIZED');
-  });
-  
-  test('POST /deposits - missing accountId returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        amount: 100,
-      },
-    });
-    
-    expect(response.status()).toBe(400);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('accountId');
-  });
-  
-  test('POST /deposits - missing amount returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-      },
-    });
-    
-    expect(response.status()).toBe(400);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('amount');
-  });
-  
-  test('POST /deposits - deposit with reference works', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.post(`${BASE_URL}/deposits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      data: {
-        accountId,
-        amount: 200,
-        reference: 'Salary payment',
-      },
-    });
-    
-    expect(response.status()).toBe(201);
-    
-    const body = await response.json();
-    expect(body.newBalance).toBe(200);
   });
 });
