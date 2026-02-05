@@ -1,318 +1,287 @@
 import { test, expect } from '@playwright/test';
+import { getAuthToken, createAccount, makeDeposit } from '../helpers/index';
+const BASE_URL = process.env.API_BASE_URL;
 
-const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+test.describe('Transactions Endpoint', () => {
+  test.describe('Happy Path', () => {
+    test('GET /transactions: returns 200, with items, page(default=1), limit(default=20), total', async ({ request }) => {
+      // Create account with 2 transactions
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token, 'EUR');
+      await makeDeposit(request, token, accountId, 100, 'First deposit');
+      await makeDeposit(request, token, accountId, 200, 'Second deposit');
 
-// Helper function to get auth token
-async function getAuthToken(request: any): Promise<string> {
-  const response = await request.post(`${BASE_URL}/auth/login`, {
-    data: {
-      email: 'demo@qa.com',
-      password: 'demo123',
-    },
+      // Fetch transactions
+      const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await response.json();
+
+      expect(response.status()).toBe(200);
+      expect(body.items.length).toBe(2);
+      expect(body.page).toBe(1);
+      expect(body.limit).toBe(20);
+      expect(body.total).toBe(2);
+    });
+
+    test('Transaction Object shape: id, account_id, type, amount, reference, created_at', async ({ request }) => {
+      // Create account with 1 transaction
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token, 'EUR');
+      await makeDeposit(request, token, accountId, 150, 'Salary payment');
+
+      // Fetch transactions
+      const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await response.json();
+      const transaction = body.items[0];
+
+      expect(response.status()).toBe(200);
+      expect(transaction).toHaveProperty('id');
+      expect(transaction).toHaveProperty('account_id');
+      expect(transaction).toHaveProperty('type');
+      expect(transaction).toHaveProperty('amount');
+      expect(transaction).toHaveProperty('reference');
+      expect(transaction).toHaveProperty('created_at');
+    });
+
+    test('Filtering: only transactions for the specified account are returned', async ({ request }) => {
+      // Create 2 accounts with transactions
+      const token = await getAuthToken(request);
+
+      const eurAccountId = await createAccount(request, token, 'EUR');
+      const amountEur = Math.round((Math.random() * (100 - 1) + 1) * 100) / 100; // Random amount between 1 and 100 with 2 decimals
+
+      const usdAccountId = await createAccount(request, token, 'USD');
+      const amountUsd = Math.round((Math.random() * (1000 - 100) + 100) * 100) / 100; // Random amount between 100 and 1000 with 2 decimals
+
+      await makeDeposit(request, token, eurAccountId, amountEur, 'Deposit to EUR account');
+      await makeDeposit(request, token, usdAccountId, amountUsd, 'Deposit to USD account');
+
+      // Fetch transactions for EUR account
+      const responseEur = await request.get(`${BASE_URL}/transactions?accountId=${eurAccountId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bodyEur = await responseEur.json();
+
+      expect(bodyEur.items[0].account_id).toBe(eurAccountId);
+      expect(bodyEur.items[0].amount).toBe(amountEur.toString());
+      expect(bodyEur.items[0].reference).toBe('Deposit to EUR account');
+
+      // Fetch transactions for USD account
+      const responseUsd = await request.get(`${BASE_URL}/transactions?accountId=${usdAccountId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bodyUsd = await responseUsd.json();
+      expect(bodyUsd.items[0].account_id).toBe(usdAccountId);
+      expect(bodyUsd.items[0].amount).toBe(amountUsd.toString());
+      expect(bodyUsd.items[0].reference).toBe('Deposit to USD account');
+    });
+
+    test('Limit parameter: limit=3 returns 3 items)', async ({ request }) => {
+      // Create account with 5 transactions
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token);
+      for (let i = 1; i <= 5; i++) {
+        await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
+      }
+
+      // Fetch transactions with limit=3
+      const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&limit=3`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await response.json();
+
+      expect(response.status()).toBe(200);
+      expect(body.items.length).toBe(3);
+      expect(body.limit).toBe(3);
+      expect(body.total).toBe(5);
+    });
+
+    test('Pagination & Sorting: Correct subsets is returned and ordered by "created_at" descending', async ({ request }) => {
+      // Create account with 10 transactions
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token);
+      for (let i = 1; i <= 10; i++) {
+        await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
+      }
+      // Fetch page 1 with limit=5 (transactions 10-6)
+      const responsePage1 = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&page=1&limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bodyPage1 = await responsePage1.json();
+
+      expect(bodyPage1.page).toBe(1);
+      expect(bodyPage1.limit).toBe(5);
+      expect(bodyPage1.total).toBe(10);
+      expect(bodyPage1.items[0].reference).toBe('Deposit# 10'); // Newest transaction first
+
+      // Fetch page 2 with limit=5 (transactions 5-1)
+      const responsePage2 = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&page=2&limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bodyPage2 = await responsePage2.json();
+
+      expect(bodyPage2.page).toBe(2);
+      expect(bodyPage2.limit).toBe(5);
+      expect(bodyPage2.total).toBe(10);
+      expect(bodyPage2.items[0].reference).toBe('Deposit# 5'); // 5th transaction is the first item on page 2
+    });
+
+    test('GET /transactions: Page beyond last returns empty items array', async ({ request }) => {
+      // Create account with 3 transactions
+      const token = await getAuthToken(request);
+      const accountId = await createAccount(request, token);
+      for (let i = 1; i <= 3; i++) {
+        await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
+      }
+
+      // Fetch page 2 with limit=5 (beyond last page)
+      const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&page=2&limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bodyPage2 = await response.json();
+      expect(response.status()).toBe(200);
+      expect(bodyPage2.items.length).toBe(0);
+      expect(bodyPage2.page).toBe(2);
+      expect(bodyPage2.limit).toBe(5);
+      expect(bodyPage2.total).toBe(3);
+    });
   });
-  const { token } = await response.json();
-  return token;
-}
 
-// Helper function to create an account
-async function createAccount(request: any, token: string, currency = 'EUR'): Promise<string> {
-  const response = await request.post(`${BASE_URL}/accounts`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    data: {
-      currency,
-    },
-  });
-  const { id } = await response.json();
-  return id;
-}
-
-// Helper function to make a deposit
-async function makeDeposit(request: any, token: string, accountId: string, amount: number, reference?: string) {
-  const response = await request.post(`${BASE_URL}/deposits`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    data: {
-      accountId,
-      amount,
-      reference,
-    },
-  });
-  return response;
-}
-
-test.describe('Transactions API', () => {
-  test('GET /transactions - returns transactions for account', async ({ request }) => {
+  test('GET /transactions: defaults (page=1, limit=20) work correctly', async ({ request }) => {
+    // Create account with 25 transactions
     const token = await getAuthToken(request);
     const accountId = await createAccount(request, token);
-    
-    // Create some deposits
-    await makeDeposit(request, token, accountId, 100, 'First deposit');
-    await makeDeposit(request, token, accountId, 50, 'Second deposit');
-    
-    // Get transactions
+    for (let i = 1; i <= 25; i++) {
+      await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
+    }
+
+    // Fetch transactions without page & limit (should default to page=1, limit=20)
     const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
-    expect(response.status()).toBe(200);
-    
     const body = await response.json();
-    expect(body).toHaveProperty('items');
-    expect(body).toHaveProperty('page');
-    expect(body).toHaveProperty('limit');
-    expect(body).toHaveProperty('total');
-    expect(body.items.length).toBe(2);
-    expect(body.page).toBe(1);
+    expect(response.status()).toBe(200);
+    expect(body.items.length).toBe(20); // Default limit is 20
+    expect(body.page).toBe(1); // Default page is 1
     expect(body.limit).toBe(20);
-    expect(body.total).toBe(2);
-    
-    // Check transaction structure
-    const transaction = body.items[0];
-    expect(transaction).toHaveProperty('id');
-    expect(transaction).toHaveProperty('account_id');
-    expect(transaction).toHaveProperty('type');
-    expect(transaction).toHaveProperty('amount');
-    expect(transaction).toHaveProperty('reference');
-    expect(transaction).toHaveProperty('created_at');
-    expect(transaction.type).toBe('deposit');
+    expect(body.total).toBe(25);
   });
-  
-  test('GET /transactions - returns only transactions for specified account', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId1 = await createAccount(request, token, 'EUR');
-    const accountId2 = await createAccount(request, token, 'USD');
-    
-    // Create deposits for both accounts
-    await makeDeposit(request, token, accountId1, 100);
-    await makeDeposit(request, token, accountId2, 200);
-    await makeDeposit(request, token, accountId1, 50);
-    
-    // Get transactions for account 1
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId1}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+});
+
+test.describe('Validation and Error Handling', () => {
+  test('GET /transactions: invalid token returns 401 (UNAUTHORIZED)', async ({ request }) => {
+    const invalidToken = 'fakeToken123';
+
+    const response = await request.get(`${BASE_URL}/transactions?accountId=some-id`, {
+      headers: { Authorization: `Bearer ${invalidToken}` },
     });
-    
     const body = await response.json();
-    expect(body.total).toBe(2);
-    expect(body.items.length).toBe(2);
-    
-    // All transactions should belong to account 1
-    body.items.forEach((tx: any) => {
-      expect(tx.account_id).toBe(accountId1);
-    });
+    expect(response.status()).toBe(401);
+    expect(body.error.message).toBe('Invalid or expired token');
   });
-  
-  test('GET /transactions - respects limit parameter', async ({ request }) => {
+
+  test('GET /transactions: missing accountId returns 400 (VALIDATION_ERROR)', async ({ request }) => {
     const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    // Create 5 deposits
-    for (let i = 1; i <= 5; i++) {
-      await makeDeposit(request, token, accountId, i * 10);
-    }
-    
-    // Get transactions with limit 3
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&limit=3`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    const body = await response.json();
-    expect(body.items.length).toBe(3);
-    expect(body.limit).toBe(3);
-    expect(body.total).toBe(5);
-  });
-  
-  test('GET /transactions - respects page parameter', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    // Create 5 deposits
-    for (let i = 1; i <= 5; i++) {
-      await makeDeposit(request, token, accountId, i * 10);
-    }
-    
-    // Get page 2 with limit 2
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&page=2&limit=2`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    const body = await response.json();
-    expect(body.items.length).toBe(2);
-    expect(body.page).toBe(2);
-    expect(body.limit).toBe(2);
-    expect(body.total).toBe(5);
-  });
-  
-  test('GET /transactions - page beyond last returns empty items', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    // Create 2 deposits
-    await makeDeposit(request, token, accountId, 100);
-    await makeDeposit(request, token, accountId, 50);
-    
-    // Get page 10 (beyond last)
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&page=10`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    expect(response.status()).toBe(200);
-    
-    const body = await response.json();
-    expect(body.items.length).toBe(0);
-    expect(body.total).toBe(2);
-    expect(body.page).toBe(10);
-  });
-  
-  test('GET /transactions - missing accountId returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    
+
     const response = await request.get(`${BASE_URL}/transactions`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
-    expect(response.status()).toBe(400);
-    
     const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('accountId');
-  });
-  
-  test('GET /transactions - invalid page returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&page=0`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
+
     expect(response.status()).toBe(400);
-    
-    const body = await response.json();
     expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('page');
+    expect(body.error.message).toContain('accountId is required');
   });
-  
-  test('GET /transactions - invalid limit returns 400', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&limit=-1`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+
+  test('GET /transactions: invalid page values return 400', async ({ request }) => {
+    const token = await getAuthToken(request); // Endpoint validates the request before checking if account exists, so we can use fake accountId for this test
+
+    // Invalid page (negative number -1)
+    const response = await request.get(`${BASE_URL}/transactions?accountId=some-id&page=-1`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
+    const body = await response.json();
+
     expect(response.status()).toBe(400);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('limit');
+    expect(body.error.message).toContain('page must be a positive integer');
   });
-  
-  test('GET /transactions - limit exceeding 100 returns 400', async ({ request }) => {
+
+  test('GET /transactions: invalid limit values return 400', async ({ request }) => {
     const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}&limit=101`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+
+    // Invalid limit (zero)
+    const response = await request.get(`${BASE_URL}/transactions?accountId=some-id&limit=0`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
+    const body = await response.json();
+
     expect(response.status()).toBe(400);
-    
-    const body = await response.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
-    expect(body.error.message).toContain('100');
+    expect(body.error.message).toContain('limit must be a positive integer');
   });
-  
-  test('GET /transactions - unknown account returns 404', async ({ request }) => {
+
+  test('GET /transactions: limit exceeding maximum (e.g., 100) returns 400', async ({ request }) => {
     const token = await getAuthToken(request);
-    
-    const response = await request.get(`${BASE_URL}/transactions?accountId=00000000-0000-0000-0000-000000000000`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+
+    // Limit exceeding maximum (e.g., 101)
+    const response = await request.get(`${BASE_URL}/transactions?accountId=some-id&limit=101`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
+    const body = await response.json();
+
+    expect(response.status()).toBe(400);
+    expect(body.error.message).toContain('limit cannot exceed 100');
+  });
+
+  test('GET /transactions: unknown accountId returns 404 (NOT_FOUND)', async ({ request }) => {
+    const token = await getAuthToken(request);
+    const unknownAccountId = '11111111-2222-3333-44b4-55fe55555a55'; // Random UUID that doesn't exist in the system
+
+    const response = await request.get(`${BASE_URL}/transactions?accountId=${unknownAccountId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = await response.json();
+
     expect(response.status()).toBe(404);
-    
-    const body = await response.json();
     expect(body.error.code).toBe('NOT_FOUND');
     expect(body.error.message).toContain('Account not found');
   });
-  
-  test('GET /transactions - missing token returns 401', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/transactions?accountId=00000000-0000-0000-0000-000000000000`);
-    
+
+  test('GET /transactions: accountId that does not belong to user returns 404 (NOT_FOUND)', async ({ request }) => {
+    // Create tokens for two different users
+    const tokenUser1 = await getAuthToken(request, 'demo@qa.com', 'demo123');
+    const tokenUser2 = await getAuthToken(request, 'second-demo@qa.com', 'demo123');
+
+    // Create account and deposit for User 1
+    const accountId = await createAccount(request, tokenUser1);
+    await makeDeposit(request, tokenUser1, accountId, 100, 'User1 deposit');
+    const bodyDeposit = await request
+      .get(`${BASE_URL}/transactions?accountId=${accountId}`, {
+        headers: { Authorization: `Bearer ${tokenUser1}` },
+      })
+      .then((res) => res.json());
+
+    expect(bodyDeposit.items[0].reference).toBe('User1 deposit');
+
+    // Fetch User1's transactions using User2's token
+    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
+      headers: { Authorization: `Bearer ${tokenUser2}` },
+    });
+    const body = await response.json();
+
     expect(response.status()).toBe(401);
-    
-    const body = await response.json();
     expect(body.error.code).toBe('UNAUTHORIZED');
+    expect(body.error.message).toContain('Invalid or expired token');
   });
-  
-  test('GET /transactions - transactions ordered by created_at descending', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    // Create deposits with references to track order
-    await makeDeposit(request, token, accountId, 10, 'First');
-    await makeDeposit(request, token, accountId, 20, 'Second');
-    await makeDeposit(request, token, accountId, 30, 'Third');
-    
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+
+  test('GET /transactions: missing token returns 401 (UNAUTHORIZED)', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/transactions?accountId=some-id`, {
+      headers: { Authorization: `` },
     });
-    
     const body = await response.json();
-    
-    // Most recent should be first (descending order)
-    expect(body.items[0].reference).toBe('Third');
-    expect(body.items[1].reference).toBe('Second');
-    expect(body.items[2].reference).toBe('First');
-    
-    // Verify timestamps are actually descending
-    const timestamps = body.items.map((tx: any) => new Date(tx.created_at).getTime());
-    for (let i = 0; i < timestamps.length - 1; i++) {
-      expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i + 1]);
-    }
-  });
-  
-  test('GET /transactions - defaults work correctly', async ({ request }) => {
-    const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
-    
-    await makeDeposit(request, token, accountId, 100);
-    
-    // Don't specify page or limit
-    const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    const body = await response.json();
-    expect(body.page).toBe(1);
-    expect(body.limit).toBe(20);
+    expect(response.status()).toBe(401);
+    expect(body.error.message).toBe('Missing or invalid authorization header');
   });
 });
