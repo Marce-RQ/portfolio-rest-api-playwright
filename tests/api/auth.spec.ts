@@ -1,6 +1,4 @@
 import { test, expect } from '@playwright/test';
-import jwt from 'jsonwebtoken';
-
 const BASE_URL = process.env.API_BASE_URL;
 
 test.describe('Auth Endpoint', () => {
@@ -48,7 +46,7 @@ test.describe('Auth Endpoint', () => {
     });
   });
 
-  test.describe('Negative', () => {
+  test.describe('Validation and Error Handling', () => {
     test('POST /auth/login: invalid credentials return 401, UNAUTHORIZED', async ({ request }) => {
       const response = await request.post(`${BASE_URL}/auth/login`, {
         data: {
@@ -89,9 +87,7 @@ test.describe('Auth Endpoint', () => {
       expect(body.error.message).toContain('Email and password are required');
     });
 
-    test('POST /auth/login: missing password returns 400 (VALIDATION_ERROR)', async ({
-      request,
-    }) => {
+    test('POST /auth/login: missing password returns 400 (VALIDATION_ERROR)', async ({ request }) => {
       const response = await request.post(`${BASE_URL}/auth/login`, {
         data: {
           email: 'demo@qa.com',
@@ -116,31 +112,18 @@ test.describe('Auth Endpoint', () => {
     });
 
     test('should reject expired token ', async ({ request }) => {
-      // First, obtain a token with short expiry (set to 5s in auth.ts)
-      const response = await request.post(`${BASE_URL}/auth/login`, {
-        data: {
-          email: 'demo@qa.com',
-          password: 'demo123',
-        },
-      });
-      // Verify token works
-      expect(response.status()).toBe(200);
-      const bodyPost = await response.json();
-
-      // Wait for token to expire (token expiry set to 10s in auth.ts)
-      await new Promise((resolve) => setTimeout(resolve, 6_000));
-
-      // Now call GET /me with expired token
-      const responseMe = await request.get(`${BASE_URL}/me`, {
+      const expiredToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3OTg5MjdhMC1lYTkxLTRlNGEtYjlhNi05N2Q2MzdlNTA0OGYiLCJpYXQiOjE3NzAyMzA3MzIsImV4cCI6MTc3MDIzMDczN30.egThWjoJD7IIZbRXBrjf2o8mtg7Gdaq_hZSYAIEEyJ4';
+      const response = await request.get(`${BASE_URL}/me`, {
         headers: {
-          Authorization: `Bearer ${bodyPost.token}`,
+          Authorization: `Bearer ${expiredToken}`,
         },
       });
-      const bodyGet = await responseMe.json();
+      const body = await response.json();
 
-      expect(responseMe.status()).toBe(401);
-      expect(bodyGet.error.code).toBe('UNAUTHORIZED');
-      expect(bodyGet.error.message).toContain('Invalid or expired token');
+      expect(response.status()).toBe(401);
+      expect(body.error.code).toBe('UNAUTHORIZED');
+      expect(body.error.message).toContain('Invalid or expired token');
     });
   });
 });
