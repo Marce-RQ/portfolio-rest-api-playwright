@@ -249,31 +249,30 @@ test.describe('Validation and Error Handling', () => {
     expect(body.error.message).toContain('Account not found');
   });
 
-  test('GET /transactions: accountId that does not belong to user returns 404 (NOT_FOUND)', async ({ request }) => {
-    // Create tokens for two different users
+  test('GET /transactions: user cannot access another user account - returns 403 FORBIDDEN', async ({ request }) => {
+    // Create account for user1
     const tokenUser1 = await getAuthToken(request, 'demo@qa.com', 'demo123');
-    const tokenUser2 = await getAuthToken(request, 'second-demo@qa.com', 'demo123');
-
-    // Create account and deposit for User 1
     const accountId = await createAccount(request, tokenUser1);
     await makeDeposit(request, tokenUser1, accountId, 100, 'User1 deposit');
-    const bodyDeposit = await request
-      .get(`${BASE_URL}/transactions?accountId=${accountId}`, {
-        headers: { Authorization: `Bearer ${tokenUser1}` },
-      })
-      .then((res) => res.json());
+    
+    // Verify user1 can access their own transactions
+    const user1Response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
+      headers: { Authorization: `Bearer ${tokenUser1}` },
+    });
+    const user1Body = await user1Response.json();
+    expect(user1Response.status()).toBe(200);
+    expect(user1Body.items[0].reference).toBe('User1 deposit');
 
-    expect(bodyDeposit.items[0].reference).toBe('User1 deposit');
-
-    // Fetch User1's transactions using User2's token
+    // Try to fetch user1's transactions using user2's token
+    const tokenUser2 = await getAuthToken(request, 'second-demo@qa.com', 'demo123');
     const response = await request.get(`${BASE_URL}/transactions?accountId=${accountId}`, {
       headers: { Authorization: `Bearer ${tokenUser2}` },
     });
     const body = await response.json();
 
-    expect(response.status()).toBe(401);
-    expect(body.error.code).toBe('UNAUTHORIZED');
-    expect(body.error.message).toContain('Invalid or expired token');
+    expect(response.status()).toBe(403);
+    expect(body.error.code).toBe('FORBIDDEN');
+    expect(body.error.message).toBe('You do not have access to this account');
   });
 
   test('GET /transactions: missing token returns 401 (UNAUTHORIZED)', async ({ request }) => {

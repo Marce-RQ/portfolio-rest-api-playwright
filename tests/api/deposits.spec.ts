@@ -132,6 +132,32 @@ test.describe('Deposits Endpoint', () => {
         expect(body.error.message).toBe('Account not found');
       });
 
+      test('POST /deposits: user cannot deposit to another user account - returns 403 FORBIDDEN', async ({
+        request,
+      }) => {
+        // Create account for user1
+        const user1Token = await getAuthToken(request);
+        const user1AccountId = await createAccount(request, user1Token, 'EUR');
+
+        // Get token for different user
+        const user2Token = await getAuthToken(request, 'second-demo@qa.com', 'demo123');
+
+        // Try deposit to user1's account using user2's token
+        const response = await request.post(`${BASE_URL}/deposits`, {
+          headers: { Authorization: `Bearer ${user2Token}` },
+          data: {
+            accountId: user1AccountId,
+            amount: 50,
+            reference: 'Cross-user deposit attempt',
+          },
+        });
+        const body = await response.json();
+
+        expect(response.status()).toBe(403);
+        expect(body.error.code).toBe('FORBIDDEN');
+        expect(body.error.message).toBe('You do not have access to this account');
+      });
+
       test('POST /deposits: missing amount returns 400 with helpful message', async ({ request }) => {
         const token = await getAuthToken(request);
         const accountId = await createAccount(request, token);
