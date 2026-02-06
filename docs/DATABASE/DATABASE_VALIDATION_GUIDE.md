@@ -110,10 +110,10 @@ Stores all transactions (deposits, etc.) for accounts.
 ### Relationships
 
 ```
-users (1) ──→ (*) accounts
+users (1) ──→ accounts
               Each user can have multiple accounts
 
-accounts (1) ──→ (*) transactions
+accounts (1) ──→ transactions
                  Each account can have multiple transactions
 ```
 
@@ -180,7 +180,7 @@ Connection details are in your `.env` file under `DATABASE_URL`.
 **Example check:**
 
 ```bash
-npm run db:check-user -- demo@qa.com
+docker compose exec api npm run db:check-user -- demo@qa.com
 ```
 
 ### Scenario 2: Account Creation
@@ -203,7 +203,7 @@ npm run db:check-user -- demo@qa.com
 **Example check:**
 
 ```bash
-npm run db:check-accounts -- <account_id>
+docker compose exec api npm run db:check-accounts -- <account_id>
 ```
 
 ### Scenario 3: Deposits/Transactions
@@ -227,7 +227,7 @@ npm run db:check-accounts -- <account_id>
 **Example check:**
 
 ```bash
-npm run db:check-transactions -- <account_id>
+docker compose exec api npm run db:check-transactions -- <account_id>
 ```
 
 ### Scenario 4: Data Integrity & Constraints
@@ -257,7 +257,7 @@ We've created helper scripts that make database validation easy, even if you don
 #### 1. Check All Users
 
 ```bash
-npm run db:check-users
+docker compose exec api npm run db:check-users
 ```
 
 **What it shows:**
@@ -280,9 +280,9 @@ Total users: 1
 #### 2. Check Specific User
 
 ```bash
-npm run db:check-user -- <email>
+docker compose exec api npm run db:check-user -- <email>
 # Example:
-npm run db:check-user -- demo@qa.com
+docker compose exec api npm run db:check-user -- demo@qa.com
 ```
 
 **What it shows:**
@@ -294,7 +294,7 @@ npm run db:check-user -- demo@qa.com
 #### 3. Check All Accounts
 
 ```bash
-npm run db:check-accounts
+docker compose exec api npm run db:check-accounts
 ```
 
 **What it shows:**
@@ -306,9 +306,9 @@ npm run db:check-accounts
 #### 4. Check Specific Account
 
 ```bash
-npm run db:check-account -- <account_id>
+docker compose exec api npm run db:check-account -- <account_id>
 # Example:
-npm run db:check-account -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
+docker compose exec api npm run db:check-account -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
 ```
 
 **What it shows:**
@@ -321,9 +321,9 @@ npm run db:check-account -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
 #### 5. Check Transactions
 
 ```bash
-npm run db:check-transactions -- <account_id>
+docker compose exec api npm run db:check-transactions -- <account_id>
 # Example:
-npm run db:check-transactions -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
+docker compose exec api npm run db:check-transactions -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
 ```
 
 **What it shows:**
@@ -336,7 +336,7 @@ npm run db:check-transactions -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
 #### 6. Check Database Statistics
 
 ```bash
-npm run db:stats
+docker compose exec api npm run db:stats
 ```
 
 **What it shows:**
@@ -349,7 +349,7 @@ npm run db:stats
 #### 7. Verify Data Integrity
 
 ```bash
-npm run db:verify-integrity
+docker compose exec api npm run db:verify-integrity
 ```
 
 **What it checks:**
@@ -397,7 +397,7 @@ test("Create account and verify in DB", async ({ request }) => {
   expect(response.status()).toBe(201);
 
   // 3. Immediately verify in database
-  // Run: npm run db:check-account -- {id}
+  // Run: docker compose exec api npm run db:check-account -- {id}
   // Or use programmatic check (see advanced section)
 });
 ```
@@ -407,7 +407,7 @@ test("Create account and verify in DB", async ({ request }) => {
 ```javascript
 test.afterAll(async () => {
   // After all tests, verify data integrity
-  // Run: npm run db:verify-integrity
+  // Run: docker compose exec api npm run db:verify-integrity
 });
 ```
 
@@ -444,7 +444,7 @@ When reporting bugs, include:
 3. Database shows balance: -100
 
 **Database Query:**
-npm run db:check-account -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
+docker compose exec api npm run db:check-account -- 987fcdeb-51a2-43d7-9f3e-8b6c2a1d4e3f
 
 **Expected:** balance = 0
 **Actual:** balance = -100
@@ -485,7 +485,7 @@ npm run seed
 
 ```bash
 # Check that password is hashed
-npm run db:check-user -- demo@qa.com
+docker compose exec api npm run db:check-user -- demo@qa.com
 # Should see: password_hash: $2b$10$... (NOT "demo123")
 ```
 
@@ -524,16 +524,18 @@ test("Make deposit", async ({ request }) => {
 
 ```bash
 # Check the account balance
-npm run db:check-account -- <account_id>
+docker compose exec api npm run db:check-account -- <account_id>
 
 # Check the transaction was recorded
-npm run db:check-transactions -- <account_id>
+docker compose exec api npm run db:check-transactions -- <account_id>
 ```
 
 **Step 3: Verify results**
 
 **What to look for:**
 
+- Account balance is exactly 100
+- One transaction exists with:
 - ✅ Account balance is exactly 100
 - ✅ One transaction exists with:
   - type: 'deposit'
@@ -547,7 +549,7 @@ Make multiple deposits and verify:
 
 ```bash
 # After 3 deposits of 100, 50, 25
-npm run db:check-transactions -- <account_id>
+docker compose exec api npm run db:check-transactions -- <account_id>
 
 # Verify:
 # - 3 transactions exist
@@ -666,23 +668,54 @@ GROUP BY account_id;
 
 ```bash
 # User checks
-npm run db:check-users                    # List all users
-npm run db:check-user -- demo@qa.com      # Check specific user
+docker compose exec api npm run db:check-users                    # List all users
+docker compose exec api npm run db:check-user -- demo@qa.com      # Check specific user
 
 # Account checks
-npm run db:check-accounts                 # List all accounts
-npm run db:check-account -- <account_id>  # Check specific account
+docker compose exec api npm run db:check-accounts                 # List all accounts
+docker compose exec api npm run db:check-account -- <account_id>  # Check specific account
 
 # Transaction checks
-npm run db:check-transactions -- <account_id>  # List transactions
+docker compose exec api npm run db:check-transactions -- <account_id>  # List transactions
 
 # System checks
-npm run db:stats                          # Database statistics
-npm run db:verify-integrity               # Verify data integrity
+docker compose exec api npm run db:stats                          # Database statistics
+docker compose exec api npm run db:verify-integrity               # Verify data integrity
 
 # Maintenance
-npm run migrate                           # Create tables
-npm run seed                              # Create demo user
+docker compose exec api npm run migrate                           # Create tables
+docker compose exec api npm run seed                              # Create demo user
 ```
 
 **Questions?** Refer to the [API Documentation](API_DOCUMENTATION.md) or ask your team lead!
+
+---
+
+## 🎓 Learning Path
+
+### Beginner: Start Here
+
+1. Read [DATABASE_VALIDATION_GUIDE.md](./DATABASE_VALIDATION_GUIDE.md)
+2. Try each command with demo data
+3. Run one test, then validate it
+
+### Intermediate: Practice
+
+1. Validate every new test you write
+2. Look for patterns in data
+3. Use integrity checks regularly
+
+### Advanced: Automate
+
+1. Use db-helpers in your tests
+2. Add DB assertions to test code
+3. Create custom validation scripts
+
+---
+
+## 🔗 Related Resources
+
+- [Complete Guide](./DATABASE_VALIDATION_GUIDE.md) - Full documentation
+- [API Documentation](./API_DOCUMENTATION.md) - API reference
+- [Test Examples](../tests/api/db-validation-examples.spec.ts) - Code samples
+- [DB Helpers](../tests/helpers/db-helpers.ts) - Programmatic access

@@ -1,27 +1,23 @@
-# Portfolio - fintech REST API Documentation
+# API Documentation
 
 **Version**: 1.0.0  
 **Base URL**: `http://localhost:3000`  
-**Authentication**: Bearer JWT Token
-
----
 
 ## Overview
 
 This is a mini fintech REST API that provides account management and transaction functionality. It demonstrates:
 
 - JWT authentication
-- CRUD operations
+- CRUD operations (v1.0.0 - CREATE, READ)
 - State mutations with database transactions
 - Pagination
 - Input validation
 - Error handling
 
----
 
 ## Table of Contents
 
-1. [Authentication](#authentication)
+1. [Testing Workflow](#testing-workflow)
 2. [Endpoints](#endpoints)
    - [Health Check](#health-check)
    - [Authentication](#authentication-endpoints)
@@ -32,39 +28,73 @@ This is a mini fintech REST API that provides account management and transaction
 3. [Error Responses](#error-responses)
 4. [Data Models](#data-models)
 
----
 
-## Authentication
 
-Most endpoints require authentication via JWT (JSON Web Token).
+## Testing Workflow
+### Recommended Testing Flow:
 
-### How to authenticate:
+1. **Health Check** - Verify API is running
+2. **Authentication** - Get your JWT token
+3. **Get User Info** - Verify token works
+4. **Create Account** - Set up a bank account
+5. **Make Deposit** - Add money to account
+6. **Check Transactions** - Verify deposit was recorded
 
-1. **Login** to get a token:
+### Step-by-Step Testing Guide
 
-   ```bash
-   POST /auth/login
-   ```
+Copy and run these commands in order for a complete API test:
 
-2. **Include token** in subsequent requests:
-   ```
-   Authorization: Bearer <your-token-here>
-   ```
-
-### Example:
-
+#### Step 1: Health Check
 ```bash
-# Get token
+curl http://localhost:3000/health
+```
+**Expected**: `{"status":"ok"}`
+
+#### Step 2: Get Authentication Token
+```bash
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"demo@qa.com","password":"demo123"}'
+```
+**Save the token** from response for next steps.
 
-# Use token
+#### Step 3: Get User Info (Verify Token Works)
+```bash
+# Replace <YOUR_TOKEN> with the token from Step 2
 curl http://localhost:3000/me \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  -H "Authorization: Bearer <YOUR_TOKEN>"
 ```
 
----
+#### Step 4: Create Account
+```bash
+curl -X POST http://localhost:3000/accounts \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"currency":"EUR"}'
+```
+**Save the account ID** from response for next steps.
+
+#### Step 5: Make Deposit
+```bash
+# Replace <ACCOUNT_ID> with the ID from Step 4
+curl -X POST http://localhost:3000/deposits \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accountId": "<ACCOUNT_ID>",
+    "amount": 100.50,
+    "reference": "Test deposit"
+  }'
+```
+
+#### Step 6: Check Transactions
+```bash
+# Replace <ACCOUNT_ID> with the ID from Step 4
+curl "http://localhost:3000/transactions?accountId=<ACCOUNT_ID>" \
+  -H "Authorization: Bearer <YOUR_TOKEN>"
+```
+
+**Note**: If you managed to complete all the steps above, you have successfully tested the API, or what QAs call the "happy path".
 
 ## Endpoints
 
@@ -72,9 +102,7 @@ curl http://localhost:3000/me \
 
 #### `GET /health`
 
-Check if the API is running.
-
-**Authentication**: None required
+**Authentication**: Not Required
 
 **Response**: `200 OK`
 
@@ -96,9 +124,9 @@ curl http://localhost:3000/health
 
 #### `POST /auth/login`
 
-Authenticate a user and receive a JWT token.
+Authenticate a user and receive a JWT token for accessing protected endpoints.
 
-**Authentication**: None required
+**Authentication**: Not Required
 
 **Request Body**:
 
@@ -119,13 +147,35 @@ Authenticate a user and receive a JWT token.
 
 **Error Responses**:
 
-- `401 Unauthorized` - Invalid credentials
+- `400 Bad Request` - Missing required fields
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Email and password are required"
+  }
+}
+```
+
+- `401 Unauthorized` - Invalid credentials (user not found or password mismatch)
 
 ```json
 {
   "error": {
     "code": "UNAUTHORIZED",
     "message": "Invalid credentials"
+  }
+}
+```
+
+- `500 Internal Server Error` - Database or server issues
+
+```json
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "An unexpected error occurred"
   }
 }
 ```
@@ -141,10 +191,17 @@ curl -X POST http://localhost:3000/auth/login \
   }'
 ```
 
-**Demo User**:
+**Demo Users (Seeded in DB)**:
 
-- Email: `demo@qa.com`
-- Password: `demo123`
+- **User 1**: 
+  - Email: `demo@qa.com`
+  - Password: `demo123`
+
+- **User 2**: 
+  - Email: `second-demo@qa.com` 
+  - Password: `demo123`
+
+**Note**: Both users share the same password. Use `demo@qa.com` for primary testing workflow. Second user can be used for multi-user testing scenarios if needed.
 
 ---
 
@@ -191,7 +248,7 @@ Create a new account for the authenticated user.
 
 ```json
 {
-  "currency": "EUR" | "USD"
+  "currency": "string" // "EUR" or "USD"
 }
 ```
 
@@ -233,7 +290,7 @@ curl -X POST http://localhost:3000/accounts \
 
 **Notes**:
 
-- New accounts start with balance of 0
+- New accounts start always with balance of 0 (default)
 - Only EUR and USD currencies are supported
 - Each user can create multiple accounts
 
@@ -567,7 +624,7 @@ curl http://localhost:3000/accounts/00000000-0000-0000-0000-000000000000 \
 }
 ```
 
----
+
 
 ## Data Models
 

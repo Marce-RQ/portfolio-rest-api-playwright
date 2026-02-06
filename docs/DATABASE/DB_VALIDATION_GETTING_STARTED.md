@@ -3,6 +3,7 @@
 ## 👋 Welcome!
 
 This document will help you get started with database validation in just 5 minutes.
+Here, you DONT need to know SQL or database internals. If you want to skip this tutorial, go to the [full documentation](./DATABASE_VALIDATION_GUIDE.md).
 
 ## Prerequisites
 
@@ -10,7 +11,7 @@ Make sure your environment is running:
 
 ```bash
 # Start the services
-docker compose up -d
+docker compose up -d --build
 
 # Verify API is running
 curl http://localhost:3000/health
@@ -20,16 +21,16 @@ curl http://localhost:3000/health
 
 ### Step 1: Check Existing Data (1 min)
 
-Let's see what's already in the database:
+From your terminal, see what's already in the database:
 
 ```bash
-# See all users
-npm run db:check-users
+# See all users (run inside Docker container)
+docker compose exec api npm run db:check-users
 ```
 
 **You should see:**
 
-- The demo user (demo@qa.com)
+- The demo users (demo@qa.com and second-demo@qa.com)
 - A hashed password (secure!)
 - Creation timestamp
 
@@ -50,14 +51,14 @@ Now let's verify that data in the database:
 
 ```bash
 # See all accounts that were created
-npm run db:check-accounts
+docker compose exec api npm run db:check-accounts
 ```
 
 **Copy one of the account IDs from the output, then:**
 
 ```bash
 # Check specific account (replace with actual ID)
-npm run db:check-account -- <paste-account-id-here>
+docker compose exec api npm run db:check-account -- <paste-account-id-here>
 ```
 
 **What to look for:**
@@ -76,15 +77,15 @@ Let's run deposit tests and verify:
 npm test -- deposits.spec.ts
 
 # Then check accounts again
-npm run db:check-accounts
+docker compose exec api npm run db:check-accounts
 ```
 
-**You should see accounts with non-zero balances now!**
+**You should now see some accounts with balances > 0**
 
 Pick an account with a balance and check its transactions:
 
 ```bash
-npm run db:check-transactions -- <account-id-with-balance>
+docker compose exec api npm run db:check-transactions -- <account-id-with-balance>
 ```
 
 **What to look for:**
@@ -98,7 +99,7 @@ npm run db:check-transactions -- <account-id-with-balance>
 Finally, let's verify everything is consistent:
 
 ```bash
-npm run db:verify-integrity
+docker compose exec api npm run db:verify-integrity
 ```
 
 **If everything is working correctly, you should see:**
@@ -127,12 +128,12 @@ Use this workflow:
 npm test -- <test-file>.spec.ts
 
 # 2. Validate the results
-npm run db:check-accounts           # See what was created
-npm run db:check-account -- <id>    # Check specific account
-npm run db:check-transactions -- <id> # Check transactions
+docker compose exec api npm run db:check-accounts           # See what was created
+docker compose exec api npm run db:check-account -- <id>    # Check specific account
+docker compose exec api npm run db:check-transactions -- <id> # Check transactions
 
 # 3. Verify integrity (do this daily or after major tests)
-npm run db:verify-integrity
+docker compose exec api npm run db:verify-integrity
 ```
 
 ### Learn More
@@ -166,40 +167,28 @@ docker compose restart db
 **"No users found"**
 
 ```bash
-# Create demo user
-npm run seed
+# Create demo user (runs inside container)
+docker compose exec api npm run seed
 ```
 
 **"Account not found"**
 
 ```bash
 # List all accounts to find correct ID
-npm run db:check-accounts
+docker compose exec api npm run db:check-accounts
 ```
 
 ### Quick Reference
 
 | What I Want            | Command                                 |
 | ---------------------- | --------------------------------------- |
-| See all users          | `npm run db:check-users`                |
-| See all accounts       | `npm run db:check-accounts`             |
-| Check specific account | `npm run db:check-account -- <id>`      |
-| Check transactions     | `npm run db:check-transactions -- <id>` |
-| Check everything is OK | `npm run db:verify-integrity`           |
-| See statistics         | `npm run db:stats`                      |
+| See all users          | `docker compose exec api npm run db:check-users`                |
+| See all accounts       | `docker compose exec api npm run db:check-accounts`             |
+| Check specific account | `docker compose exec api npm run db:check-account -- <id>`      |
+| Check transactions     | `docker compose exec api npm run db:check-transactions -- <id>` |
+| Check everything is OK | `docker compose exec api npm run db:verify-integrity`           |
+| See statistics         | `docker compose exec api npm run db:stats`                      |
 
-## 📝 Practice Exercise
-
-Try this on your own:
-
-1. Run the account creation test
-2. Find the account ID from the test output or database
-3. Check that account in the database
-4. Make a deposit to that account
-5. Verify the transaction was recorded
-6. Check the balance matches the transaction sum
-
-**Challenge:** Can you find any data inconsistencies?
 
 ## 💡 Pro Tips
 

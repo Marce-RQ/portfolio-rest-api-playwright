@@ -1,177 +1,147 @@
-# Portfolio API + Playwright Tests
+# REST API Playwright Tests
 
-A minimal fintech API with comprehensive Playwright API test suite. Built to demonstrate QA automation skills: authentication, stateful operations, validations, and pagination testing.
+This is a minimal fintech API that you can clone and run locally for FREE.
+
+Check out the [GUIDE](docs/QA_API_TESTING_GUIDE.md) if you are new to API testing automation.
+
 
 ## 📋 What's Inside
 
 - **API**: Express + TypeScript + Postgres
 - **Tests**: Playwright API testing (no UI)
 - **Orchestration**: Docker Compose
-- **Cost**: $0 (runs locally + GitHub Actions)
+- **Cost**: $0
 
-## 🚀 Quick Start
+## Coverage
+- **Authentication** (login, logout, register)
+- **Stateful POST/GET operations** (account creation, deposits)
+- **Input validation** (invalid credentials, invalid data)
+- **Pagination** (account list)
+- **Authorization** (unauthorized access)
 
-### Prerequisites
+## Prerequisites & Setup
 
-- Docker Desktop or Docker Engine + Compose
-- Node.js 20+
-- npm
+### Required Knowledge
+- Basic understanding of HTTP methods (GET, POST, PUT, DELETE)
+- Familiarity with JSON data format
+- Basic command line usage
 
-### Setup & Run (Docker-first — recommended)
+### Tools You'll Need Installed
+- **Docker Desktop** [Download](https://www.docker.com/products/docker-desktop/)
+- **Node.js 20+** [Download](https://nodejs.org/en/download/) (includes npm)
+- **API Testing Tool** (Optional) recommended for manual testing first:
+  - Postman, Insomnia, Thunder Client, or curl
+- **Code Editor** (VS Code recommended)
+- **Playwright** (Installed automatically with npm install)
 
-Follow these commands from the project root. The project is built to run with Docker Compose; this is the recommended flow.
+----
 
+### Quick Setup Commands
+
+**Clone and run these commands:**
 ```bash
 # 1. Clone and enter directory
+git clone https://github.com/Marce-RQ/portfolio-rest-api-playwright.git
 cd portfolio-api-playwright
 
 # 2. Copy environment file (do not commit .env)
 cp .env.example .env
 
-# 3. Install dependencies (required for building the API image)
+# 3. Install dependencies
 npm install
 
-# 4. Build and start services (Postgres + API)
+# 4. Install Playwright browsers (required for testing)
+npx playwright install
+
+# 5. Start services with Docker (assuming Docker Desktop is downloaded and running)
 docker compose up -d --build
 
-# 5. Verify the API is ready
-curl http://localhost:3000/health  # expect: {"status":"ok"}
+# 6. Verify API is running
+curl http://localhost:3000/health
 
-# 6. Run Playwright tests
+# 7. Run tests
 npm test
 
-# 7. When finished, stop services (use -v to wipe DB data)
-docker compose down        # stop but keep volumes (data persists)
-docker compose down -v     # stop and remove volumes (reset DB)
-```
-
-If you prefer not to use Docker, see `DOCKER_SETUP.md` for platform-specific alternatives (local Postgres on macOS, Windows, or WSL). The repository and CI assume the Docker-first workflow.
-
-### What Happens on Startup
-
-When you run `docker compose up`:
-
-1. Postgres starts and waits for readiness
-2. API service builds and starts
-3. Migrations run automatically (creates tables)
-4. Seed script runs (creates demo@qa.com user)
-5. API becomes available at http://localhost:3000
-
-### Available Commands
-
-```bash
-# Development
-npm run dev              # Run API in watch mode (outside Docker)
-npm run build            # Compile TypeScript to dist/
-npm run start            # Run compiled API
-
-# Database
-npm run migrate          # Run migrations manually
-npm run seed             # Seed demo user manually
-
-# Testing
-npm test                 # Run all Playwright tests
-npm run test:ui          # Run tests with Playwright UI
-
-# Database Validation (QA Tools)
-npm run db:check-users                    # List all users
-npm run db:check-user -- <email>          # Check specific user
-npm run db:check-accounts                 # List all accounts
-npm run db:check-account -- <account_id>  # Check specific account
-npm run db:check-transactions -- <id>     # List transactions
-npm run db:stats                          # Database statistics
-npm run db:verify-integrity               # Run integrity checks
-
-# Docker
-docker compose up -d     # Start services in background
-docker compose down      # Stop services
-docker compose down -v   # Stop and remove volumes (clean DB)
-docker compose logs api  # View API logs
-```
-
-## 📚 Project Structure
-
-```
-.
-├── docs/
-│   └── PRD.md                    # Product Requirements
-├── src/
-│   ├── server.ts                 # Entry point
-│   ├── app.ts                    # Express app setup
-│   ├── db/
-│   │   ├── pool.ts               # Postgres connection
-│   │   ├── migrate.ts            # Database migrations
-│   │   └── seed.ts               # Seed data (demo user)
-│   └── routes/
-│       └── health.ts             # Health check endpoint
-├── tests/
-│   └── api/
-│       └── health.spec.ts        # Health endpoint tests
-├── docker-compose.yml            # Local orchestration
-├── Dockerfile                    # API container
-├── playwright.config.ts          # Test configuration
-└── package.json                  # Dependencies & scripts
-```
-
-## 🧪 Current Phase: Phase 0 ✅
-
-- [x] Docker Compose setup
-- [x] Database migrations (users, accounts, transactions tables)
-- [x] Seed script (demo user)
-- [x] Health endpoint (`GET /health`)
-- [x] Playwright configured
-- [x] First test passing
-
-## 📖 Documentation
-
-- [PRD.md](docs/PRD.md) - Full product requirements and phased delivery plan
-- [DATABASE_VALIDATION_GUIDE.md](docs/DATABASE_VALIDATION_GUIDE.md) - Complete guide to database validation for QA
-- [DB_VALIDATION_QUICK_REFERENCE.md](docs/DB_VALIDATION_QUICK_REFERENCE.md) - Quick reference for database validation commands
-- [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) - API endpoints and usage
-
-## 🔐 Demo Credentials
-
-```
-Email: demo@qa.com
-Password: demo123
-```
-
-## 📝 License
-
-MIT
-
-## After running tests — simple cleanup steps
-
-When tests finish, the project may leave small helper services running in Docker. These use memory and CPU. If you don’t need them anymore, stop them using one of the commands below.
-
-- Stop and keep the data (recommended if you want to inspect results later):
-
-```bash
+# 8. Stop services when done (Use this once you stop testing to free up your computer's resources)
 docker compose down
 ```
 
-- Stop and remove all data (reset to a clean state):
+## 📚 Documentation & Guides
+- **[QA_API_TESTING_GUIDE.md](docs/QA_API_TESTING_GUIDE.md)** - Complete API testing guide with patterns and examples
+- **[API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)** - API endpoints and usage
+- **[DATABASE_VALIDATION_GUIDE.md](docs/DATABASE_VALIDATION_GUIDE.md)** - Database validation for QA
+- **[DB_VALIDATION_QUICK_REFERENCE.md](docs/DB_VALIDATION_QUICK_REFERENCE.md)** - Quick database commands
 
-```bash
-docker compose down -v
+
+## 📁 Project Structure
+```
+.
+├── docs/
+│   ├── QA_API_TESTING_GUIDE.md      # API testing guide
+│   ├── API_DOCUMENTATION.md         # Endpoint documentation
+│   ├── DATABASE_VALIDATION_GUIDE.md # Database validation guide
+│   └── DB_VALIDATION_QUICK_REFERENCE.md # Quick database commands
+├── src/
+│   ├── server.ts                    # API entry point
+│   ├── app.ts                       # Express app setup
+│   ├── db/
+│   │   ├── pool.ts                  # Postgres connection
+│   │   ├── migrate.ts               # Database migrations
+│   │   └── seed.ts                  # Seed data (demo user)
+│   ├── middleware/
+│   │   └── auth.ts                  # Authentication middleware
+│   └── routes/
+│       ├── auth.ts                  # Authentication endpoints
+│       ├── accounts.ts              # Account management
+│       ├── deposits.ts              # Deposit operations
+│       └── health.ts                # Health check endpoint
+├── tests/
+│   ├── api/
+│   │   ├── auth.spec.ts             # Authentication tests
+│   │   ├── accounts.spec.ts         # Account tests
+│   │   └── health.spec.ts           # Health endpoint tests
+│   └── helpers/
+│       ├── auth-helpers.ts          # Auth test utilities
+│       ├── create-account-helpers.ts # Account creation helpers
+│       └── db-helpers.ts            # Database test utilities
+├── scripts/
+│   ├── db-check-user.ts             # User validation script
+│   ├── db-check-users.ts            # Users list script
+│   ├── db-check-account.ts          # Account validation script
+│   ├── db-check-accounts.ts         # Accounts list script
+│   ├── db-check-transactions.ts     # Transaction validation script
+│   ├── db-stats.ts                  # Database statistics
+│   └── db-verify-integrity.ts       # Data integrity checks
+├── docker-compose.yml               # Local development orchestration
+├── Dockerfile                       # API container definition
+├── playwright.config.ts             # Test configuration
+├── package.json                     # Dependencies and scripts
+└── .env.example                     # Environment variables template
 ```
 
-If you are not sure which to use:
+## 🔐 Demo Credentials
+```
+User 1:
+Email: demo@qa.com
+Password: demo123
 
-- Run `docker compose down` — this safely stops services but keeps your data.
-- If you want everything removed (for a fresh start), run `docker compose down -v`.
+User 2:
+Email: second-demo@qa.com
+Password: demo123
 
-Quick checks (helpful if something looks wrong):
-
-- See running containers: `docker ps`
-- View API logs: `docker compose logs api`
-
-Optional automatic cleanup:
-
-- If you prefer the test runner to stop and remove containers automatically after tests, set this environment variable before running tests:
-
-```bash
-PLAYWRIGHT_AUTO_TEARDOWN=true npm test
 ```
 
-Otherwise, run the `docker compose down` command manually when you're done.
+## 🛠️ Useful Commands
+```bash
+# Testing
+npm test                 # Run all tests
+npm run test:ui          # Run tests with UI
+
+# Database validation
+npm run db:check-users   # List all users
+npm run db:stats         # Database statistics
+
+# Docker
+docker compose logs api  # View API logs
+docker compose down -v   # Stop and remove all data
+```

@@ -27,7 +27,7 @@ Step 2: API Assertion (What most QA do)
 Step 3: Database Validation (What you'll learn)
    ↓
 ┌──────────────────────────────────────┐
-│  npm run db:check-account -- abc-123 │
+│  docker compose exec api npm run db:check-account -- abc-123 │
 └──────────────────────────────────────┘
    ↓
 ┌──────────────────────────────────────┐
@@ -88,39 +88,39 @@ transactions
 │                    VALIDATION SCRIPTS                        │
 └─────────────────────────────────────────────────────────────┘
 
-npm run db:check-users
+docker compose exec api npm run db:check-users
 ├─ Shows: All users in system
 ├─ Checks: Email, creation date
 └─ Security: Password is hashed ✅
 
-npm run db:check-user -- demo@qa.com
+docker compose exec api npm run db:check-user -- demo@qa.com
 ├─ Shows: User details
 ├─ Shows: All accounts for user
 └─ Calculates: Total balance across accounts
 
-npm run db:check-accounts
+docker compose exec api npm run db:check-accounts
 ├─ Shows: All accounts
 ├─ Shows: Currency and balance
 └─ Shows: Which user owns each
 
-npm run db:check-account -- <id>
+docker compose exec api npm run db:check-account -- <id>
 ├─ Shows: Account details
 ├─ Shows: All transactions
 ├─ Validates: Balance = Sum(transactions)
 └─ Checks: Account belongs to user
 
-npm run db:check-transactions -- <id>
+docker compose exec api npm run db:check-transactions -- <id>
 ├─ Shows: Transaction history
 ├─ Shows: Running balance
 └─ Validates: Final balance matches
 
-npm run db:stats
+docker compose exec api npm run db:stats
 ├─ Counts: Users, accounts, transactions
 ├─ Shows: Total money by currency
 ├─ Shows: Recent activity
 └─ Quick checks: Orphaned records, negative balances
 
-npm run db:verify-integrity
+docker compose exec api npm run db:verify-integrity
 ├─ Checks: All relationships valid
 ├─ Checks: No orphaned records
 ├─ Checks: All balances match transactions
@@ -136,7 +136,7 @@ npm run db:verify-integrity
 API Test                    Database Validation
 ────────                    ───────────────────
 
-POST /accounts          →   npm run db:check-account -- <id>
+POST /accounts          →   docker compose exec api npm run db:check-account -- <id>
 ├─ currency: EUR            ├─ ✅ Account exists
 └─ Response: 201            ├─ ✅ Currency: EUR
                             ├─ ✅ Balance: 0.00
@@ -150,12 +150,12 @@ POST /accounts          →   npm run db:check-account -- <id>
 API Test                    Database Validation
 ────────                    ───────────────────
 
-POST /deposits          →   npm run db:check-account -- <id>
+POST /deposits          →   docker compose exec api npm run db:check-account -- <id>
 ├─ amount: 100              ├─ ✅ Balance updated to 100
 ├─ reference: "Test"        ├─ ✅ Transaction created
 └─ Response: 200            └─ ✅ Reference saved
     └─ balance: 100
-                        →   npm run db:check-transactions -- <id>
+                        →   docker compose exec api npm run db:check-transactions -- <id>
                             ├─ ✅ 1 transaction found
                             ├─ ✅ Type: deposit
                             ├─ ✅ Amount: 100.00
@@ -169,7 +169,7 @@ POST /deposits          →   npm run db:check-account -- <id>
 API Tests                   Database Validation
 ─────────                   ───────────────────
 
-Deposit #1: 100         →   npm run db:check-transactions -- <id>
+Deposit #1: 100         →   docker compose exec api npm run db:check-transactions -- <id>
 Deposit #2: 50
 Deposit #3: 25              Transaction #1: 100 (Running: 100)
                             Transaction #2: 50  (Running: 150)
@@ -200,7 +200,7 @@ But... in the database...
 
 Database Reality (FAILS ❌)
 ──────────────────────────
-npm run db:check-account -- <id>
+docker compose exec api npm run db:check-account -- <id>
 
 Balance: 0.00  ❌ MISMATCH!
 Transactions: 1
@@ -259,7 +259,7 @@ Month 2+: Expert
 
 Your Command
      ↓
-npm run db:check-account -- abc-123
+docker compose exec api npm run db:check-account -- abc-123
      ↓
 package.json → Runs tsx scripts/db-check-account.ts
      ↓
@@ -301,7 +301,7 @@ email: demo@qa.com
 password_hash: $2b$10$KZe... ← Encrypted! Safe! 🔒
 
 How to check:
-npm run db:check-user -- demo@qa.com
+docker compose exec api npm run db:check-user -- demo@qa.com
 → Shows password_hash starting with $2b$ ✅
 ```
 
