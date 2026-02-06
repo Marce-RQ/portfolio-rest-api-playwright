@@ -66,7 +66,7 @@ test.describe('Transactions Endpoint', () => {
       const bodyEur = await responseEur.json();
 
       expect(bodyEur.items[0].account_id).toBe(eurAccountId);
-      expect(bodyEur.items[0].amount).toBe(amountEur.toString());
+      expect(bodyEur.items[0].amount).toBe(amountEur.toFixed(2));
       expect(bodyEur.items[0].reference).toBe('Deposit to EUR account');
 
       // Fetch transactions for USD account
@@ -75,7 +75,7 @@ test.describe('Transactions Endpoint', () => {
       });
       const bodyUsd = await responseUsd.json();
       expect(bodyUsd.items[0].account_id).toBe(usdAccountId);
-      expect(bodyUsd.items[0].amount).toBe(amountUsd.toString());
+      expect(bodyUsd.items[0].amount).toBe(amountUsd.toFixed(2));
       expect(bodyUsd.items[0].reference).toBe('Deposit to USD account');
     });
 
