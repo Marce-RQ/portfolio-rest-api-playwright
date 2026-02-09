@@ -2,19 +2,20 @@
 
 Hi there! 👋
 
-This is a minimal Fintech API I created that you can locally run at "0" cost.
+This is a minimal Fintech API I created to demonstrate my ability to design and build a REST API testing suite using Playwright.
 
 There is a separate guide [here](docs/QA_API_TESTING_GUIDE.md) for new software testers to RUN and LEARN API automation testing.
 
-## What This Demonstrates
-The **main goal** is to demonstrate my ability to design and build a REST API testing suite using Playwright:
+> **Note:** Only the automation code is 100% mine. I implemented the API with the help of Claude AI.
 
-Key Areas:
+## Key Areas
+
 -  **Playwright API Test Automation** - RESTful API
 -  **Test Architecture** - Clean helper functions and reusable patterns  
 -  **Stateful Testing** - POST/GET operations on this version
 -  **Authentication Testing** - Token-based authorization
 -  **Error Handling** - Comprehensive negative test scenarios
+
 
 ## Where to Look?
 
@@ -38,7 +39,7 @@ Go to [README > Quick Setup Commands](../README.md#quick-setup-commands) for ste
 - **Testing**: Playwright (API testing)
 - **API**: Express + TypeScript + Postgres
 - **Orchestration**: Docker Compose
-- **CI/CD**: GitHub Actions
+- **CI**: GitHub Actions
 - **Cost**: $0 (runs locally + GitHub Actions)
 - **AI**: I am not a developer, so "Claude AI" was used to create the API. However, the automation code is 100% mine 🤓
 

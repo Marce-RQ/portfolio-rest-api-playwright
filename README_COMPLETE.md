@@ -14,6 +14,7 @@ On this version, we are not performing database validation which is an important
 - **API**: Express + TypeScript + Postgres
 - **Tests**: Playwright API testing (no UI)
 - **Orchestration**: Docker Compose
+- **CI**: GitHub Actions
 - **Cost**: $0
 
 ## Coverage
@@ -133,3 +134,18 @@ npm run db:stats         # Database statistics
 docker compose logs api  # View API logs
 docker compose down -v   # Stop and remove all data
 ```
+
+
+## 🔄 Continuous Integration
+
+This project includes automated CI pipeline that runs on every push and pull request:
+
+-  Code formatting checks
+-  TypeScript compilation  
+-  Database setup and migrations
+-  API server startup
+-  Full Playwright test suite execution
+
+**CI Configuration**:   [CI Workflow](.github/workflows/ci.yml)
+
+*Note: CI (testing) only, not full CI/CD (no automated deployment)*

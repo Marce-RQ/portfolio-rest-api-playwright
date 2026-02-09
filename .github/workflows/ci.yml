@@ -1,0 +1,80 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]                   # Run on pushes to main branches
+  pull_request:
+    branches: [ main ]                   # Run on PRs targeting main branch
+
+jobs:
+  test:
+    name: CI: Fintech API Tests          # Human-readable job name
+    runs-on: ubuntu-latest               # The virtual machine environment
+
+    services:
+      postgres:
+        image: postgres:16-alpine         # PostgreSQL Docker image
+        env:
+          POSTGRES_PASSWORD: test_pass   # Database password
+          POSTGRES_USER: test_user       # Database username  
+          POSTGRES_DB: test_fintech      # Database name
+        options: >-
+          --health-cmd pg_isready        # Health check command
+          --health-interval 10s          # Check every 10 seconds
+          --health-timeout 5s            # Timeout after 5 seconds
+          --health-retries 5             # Retry 5 times
+        ports:
+          - 5432:5432                    # Map port 5432
+
+    steps:
+    # 1️⃣ Get your code
+    - name: Checkout code
+      uses: actions/checkout@v4          # GitHub Action to download code
+    
+    # 2️⃣ Setup Node.js environment
+    - name: Setup Node.js
+      uses: actions/setup-node@v4        # GitHub Action for Node.js setup
+      with:
+        node-version: '20'               # Node.js version to use
+        cache: 'npm'                     # Cache npm dependencies for speed
+    
+    # 3️⃣ Install project dependencies
+    - name: Install dependencies
+      run: npm ci                        # 'ci' = clean install (faster, reproducible)
+    
+    # 4️⃣ Check code formatting
+    - name: Check code formatting
+      run: npm run format:check          # Verify code follows Prettier rules
+    
+    # 5️⃣ Compile TypeScript
+    - name: Build TypeScript
+      run: npm run build                 # Convert TypeScript to JavaScript
+    
+    # 6️⃣ Setup database
+    - name: Setup database
+      run: |
+        npm run migrate                  # Create database tables
+        npm run seed                     # Insert test data
+      env:
+        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_fintech
+    
+    # 7️⃣ Start your API server
+    - name: Start API server
+      run: |
+        npm start &                      # Start server in background
+        sleep 10                         # Wait 10 seconds for server to be ready
+      env:
+        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_fintech
+        PORT: 3000                       # Server port
+        NODE_ENV: test                   # Environment mode
+        JWT_SECRET: test-secret          # JWT signing secret
+    
+    # 8️⃣ Install Playwright browsers
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps  # Install browsers needed for API testing
+    
+    # 9️⃣ Run your tests
+    - name: Run API tests
+      run: npm test                      # Execute Playwright API tests
+      env:
+        API_BASE_URL: http://localhost:3000  # Tell tests where API is running
