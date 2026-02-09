@@ -84,7 +84,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const transactionId = transactionResult.rows[0].id;
     
     // Update account balance
-    const newBalance = parseFloat(account.balance) + amount;
+    const newBalance = parseFloat((parseFloat(account.balance) + amount).toFixed(2));
     await client.query(
       'UPDATE accounts SET balance = $1 WHERE id = $2',
       [newBalance, accountId]
@@ -94,7 +94,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     
     return res.status(201).json({
       transactionId,
-      newBalance,
+      balance: newBalance.toFixed(2),
     });
   } catch (error) {
     await client.query('ROLLBACK');

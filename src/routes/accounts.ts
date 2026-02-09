@@ -43,7 +43,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     return res.status(201).json({
       id: account.id,
       currency: account.currency,
-      balance: parseFloat(account.balance),
+      balance: parseFloat(account.balance).toFixed(2),
     });
   } catch (error) {
     console.error('Create account error:', error);
@@ -80,7 +80,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     return res.status(200).json({
       id: account.id,
       currency: account.currency,
-      balance: parseFloat(account.balance),
+      balance: parseFloat(account.balance).toFixed(2),
     });
   } catch (error) {
     console.error('Get account error:', error);

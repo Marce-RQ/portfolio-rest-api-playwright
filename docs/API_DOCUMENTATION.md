@@ -258,7 +258,7 @@ Create a new account for the authenticated user.
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
   "currency": "EUR",
-  "balance": 0
+  "balance": "0.00"
 }
 ```
 
@@ -312,7 +312,7 @@ Get account details by ID.
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
   "currency": "EUR",
-  "balance": 150.5
+  "balance": "150.50"
 }
 ```
 
@@ -368,7 +368,7 @@ Make a deposit to an account.
 ```json
 {
   "transactionId": "550e8400-e29b-41d4-a716-446655440002",
-  "newBalance": 250.5
+  "balance": "250.50"
 }
 ```
 
@@ -645,7 +645,7 @@ curl http://localhost:3000/accounts/00000000-0000-0000-0000-000000000000 \
   id: string (UUID)
   user_id: string (UUID, references User)
   currency: "EUR" | "USD"
-  balance: number (decimal, 2 places)
+  balance: string (decimal, 2 places, formatted as string)
   created_at: timestamp
 }
 ```
