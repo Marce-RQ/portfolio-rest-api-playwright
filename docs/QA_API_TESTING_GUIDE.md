@@ -28,7 +28,7 @@ Playwright supports API testing via its built-in request context and assertions.
 
 ## 2) Quick start (run + verify + test)
 
-For SETUP go to [README > Quick Setup Commands](README_NEWBIE.md#quick-setup-commands) for the full commands and prerequisites.
+For SETUP go to [README > Quick Setup Commands](../README.md#quick-setup-commands) for the full commands and prerequisites.
 
 
 ---
@@ -190,40 +190,18 @@ export async function createAccount(request: any, token: string, currency = 'EUR
       currency,
     },
   });
-  const { id } = await response.json();
-  return id;
+  const body = await response.json();
+  return {
+    response: response,
+    body: body
+  };
 }
 ```
 
 ---
 
-
-## 🎓 DB Validation Learning Path
-
-### Beginner: Start Here
-
-1. Read [DATABASE_VALIDATION_GUIDE.md](./DATABASE_VALIDATION_GUIDE.md)
-2. Try each command with demo data
-3. Run one test, then validate it
-
-### Intermediate: Practice
-
-1. Validate every new test you write
-2. Look for patterns in data
-3. Use integrity checks regularly
-
-### Advanced: Automate
-
-1. Use db-helpers in your tests
-2. Add DB assertions to test code
-3. Create custom validation scripts
-
----
-
 ## 🔗 Related Resources
 
-- [Complete Guide](./DATABASE_VALIDATION_GUIDE.md) - Full documentation
+- [README](../README.md) - Quick start
 - [API Documentation](./API_DOCUMENTATION.md) - API reference
-- [Test Examples](../tests/api/db-validation-examples.spec.ts) - Code samples
-- [DB Helpers](../tests/helpers/db-helpers.ts) - Programmatic access
 

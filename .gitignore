@@ -44,8 +44,8 @@ playwright/.cache/
 docs/PRD/
 docs/DATABASE/
 
-# Test files 
-tests/api/db-validation.spec.ts
+# Test files (Temporary)
+tests/api/db-validation.ts
 
 # Scripts
 scripts/
