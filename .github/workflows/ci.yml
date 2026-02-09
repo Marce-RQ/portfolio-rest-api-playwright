@@ -8,16 +8,16 @@ on:
 
 jobs:
   test:
-    name: CI: Fintech API Tests          # Human-readable job name
-    runs-on: ubuntu-latest               # The virtual machine environment
+    name: "CI: Fintech API Tests"           
+    runs-on: ubuntu-latest               
 
     services:
       postgres:
         image: postgres:16-alpine         # PostgreSQL Docker image
         env:
-          POSTGRES_PASSWORD: test_pass   # Database password
-          POSTGRES_USER: test_user       # Database username  
-          POSTGRES_DB: test_fintech      # Database name
+          POSTGRES_PASSWORD: api_pass   # Database password
+          POSTGRES_USER: api_user       # Database username  
+          POSTGRES_DB: fintech_api      # Database name
         options: >-
           --health-cmd pg_isready        # Health check command
           --health-interval 10s          # Check every 10 seconds
@@ -56,7 +56,7 @@ jobs:
         npm run migrate                  # Create database tables
         npm run seed                     # Insert test data
       env:
-        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_fintech
+        DATABASE_URL: postgresql://api_user:api_pass@localhost:5432/fintech_api
     
     # 7️⃣ Start your API server
     - name: Start API server
@@ -64,10 +64,10 @@ jobs:
         npm start &                      # Start server in background
         sleep 10                         # Wait 10 seconds for server to be ready
       env:
-        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_fintech
+        DATABASE_URL: postgresql://api_user:api_pass@localhost:5432/fintech_api
         PORT: 3000                       # Server port
         NODE_ENV: test                   # Environment mode
-        JWT_SECRET: test-secret          # JWT signing secret
+        JWT_SECRET: your-secret-key-change-in-production          # JWT signing secret
     
     # 8️⃣ Install Playwright browsers
     - name: Install Playwright browsers
