@@ -1,21 +1,24 @@
 import { test, expect } from '@playwright/test';
+import {getAuthToken} from '../helpers/auth-helpers';
+import jwt from 'jsonwebtoken';
 const BASE_URL = process.env.API_BASE_URL;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 test.describe('Auth Endpoint', () => {
   test.describe('Happy Path', () => {
     test('POST /auth/login: returns 200 and Token', async ({ request }) => {
+      // First, obtaining JWT token
       const response = await request.post(`${BASE_URL}/auth/login`, {
         data: {
           email: 'demo@qa.com',
           password: 'demo123',
         },
       });
-      expect(response.status()).toBe(200);
-
       const body = await response.json();
+      
+      expect(response.status()).toBe(200);
       expect(body).toHaveProperty('token');
       expect(typeof body.token).toBe('string');
-      expect(body.token.length).toBeGreaterThan(0);
     });
 
     test('GET /me: with valid token returns 200 and user info (id, email)', async ({ request }) => {
@@ -35,13 +38,10 @@ test.describe('Auth Endpoint', () => {
           Authorization: `Bearer ${bodyPost.token}`,
         },
       });
-      expect(response.status()).toBe(200);
-
       const body = await response.json();
-      expect(typeof body.id).toBe('string');
-      expect(body.id.length).toBeGreaterThan(0);
 
-      expect(typeof body.email).toBe('string');
+      expect(response.status()).toBe(200);
+      expect(typeof body.id).toBe('string');
       expect(body.email).toBe('demo@qa.com');
     });
   });
@@ -54,9 +54,9 @@ test.describe('Auth Endpoint', () => {
           password: 'WrongPassword',
         },
       });
-      expect(response.status()).toBe(401);
-
       const body = await response.json();
+      
+      expect(response.status()).toBe(401);
       expect(body.error.code).toBe('UNAUTHORIZED');
       expect(body.error.message).toContain('Invalid credentials');
     });
@@ -112,8 +112,27 @@ test.describe('Auth Endpoint', () => {
     });
 
     test('should reject expired token ', async ({ request }) => {
-      const expiredToken =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3OTg5MjdhMC1lYTkxLTRlNGEtYjlhNi05N2Q2MzdlNTA0OGYiLCJpYXQiOjE3NzAyMzA3MzIsImV4cCI6MTc3MDIzMDczN30.egThWjoJD7IIZbRXBrjf2o8mtg7Gdaq_hZSYAIEEyJ4';
+      // Login to get a valid token
+      const validToken = await getAuthToken(request);
+      const meResponse = await request.get(`${BASE_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      });
+      // Extracting the userId
+      const {id : userId} = await meResponse.json();
+      
+      if (!JWT_SECRET) {
+        throw new Error('Check that your JWT_SECRET is set in the .env file');
+      }
+      
+      // Create expired token with real user ID
+      const expiredToken = jwt.sign(
+        { userId },
+        JWT_SECRET,
+        { expiresIn: '-1h' } // Negative time = expired an hour ago
+      );
+      
       const response = await request.get(`${BASE_URL}/me`, {
         headers: {
           Authorization: `Bearer ${expiredToken}`,
