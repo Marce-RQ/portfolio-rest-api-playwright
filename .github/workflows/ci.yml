@@ -13,18 +13,18 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine         # PostgreSQL Docker image
+        image: postgres:16-alpine
         env:
-          POSTGRES_PASSWORD: api_pass   # Database password
-          POSTGRES_USER: api_user       # Database username  
-          POSTGRES_DB: fintech_api      # Database name
+          POSTGRES_PASSWORD: api_pass
+          POSTGRES_USER: api_user
+          POSTGRES_DB: fintech_api
         options: >-
-          --health-cmd pg_isready        # Health check command
-          --health-interval 10s          # Check every 10 seconds
-          --health-timeout 5s            # Timeout after 5 seconds
-          --health-retries 5             # Retry 5 times
+          --health-cmd "pg_isready -U api_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
         ports:
-          - 5432:5432                    # Map port 5432
+          - 5432:5432
 
     steps:
     # 1️⃣ Get your code
