@@ -1,6 +1,3 @@
-import { request } from '@playwright/test';
-import { getAuthToken } from './auth-helpers';
-
 const BASE_URL = process.env.API_BASE_URL;
 
 export async function createAccount(request: any, token: string, currency = 'EUR') {
@@ -12,6 +9,9 @@ export async function createAccount(request: any, token: string, currency = 'EUR
       currency,
     },
   });
-  const { id } = await response.json();
-  return id;
+  const body = await response.json();
+  return {
+    response: response,
+    body: body
+  };
 }

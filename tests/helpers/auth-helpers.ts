@@ -12,7 +12,7 @@ export async function getAuthToken(
     },
   });
 
-  const { token } = await response.json(); // destructuring
+  const {token} = await response.json(); 
 
   return token;
 }

@@ -17,5 +17,10 @@ export async function makeDeposit(
       reference,
     },
   });
-  return response;
+
+  const body = await response.json();
+  return {
+    response: response,
+    body: body
+  };
 }
