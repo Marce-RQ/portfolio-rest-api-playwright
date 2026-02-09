@@ -20,7 +20,7 @@ test.describe('Accounts Endpoint', () => {
       expect(body).toHaveProperty('currency');
       expect(body).toHaveProperty('balance');
       expect(body.currency).toBe('EUR');
-      expect(body.balance).toEqual(0);
+      expect(body.balance).toBe('0.00');
     });
 
     test('POST /accounts: create USD account returns 201, id, currency, balance', async ({ request }) => {
@@ -36,7 +36,7 @@ test.describe('Accounts Endpoint', () => {
       expect(body).toMatchObject({
         id: expect.any(String),
         currency: expect.any(String),
-        balance: expect.any(Number),
+        balance: expect.any(String),
       });
     });
 

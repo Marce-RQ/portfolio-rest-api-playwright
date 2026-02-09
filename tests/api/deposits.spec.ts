@@ -6,7 +6,8 @@ test.describe('Deposits Endpoint', () => {
   test.describe('Happy Path', () => {
     test('POST /deposits: successful deposit returns transactionId and newBalance', async ({ request }) => {
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token, 'EUR');
+      const accountResult = await createAccount(request, token, 'EUR');
+      const accountId = accountResult.body.id;
       const amount = 100.5;
 
       // Make a deposit
@@ -22,12 +23,13 @@ test.describe('Deposits Endpoint', () => {
 
       expect(response.status()).toBe(201);
       expect(typeof body.transactionId).toBe('string');
-      expect(body.newBalance).toBe(amount);
+      expect(body.balance).toBe(amount.toFixed(2));
     });
 
     test('POST /deposits: multiple deposits accumulate correctly', async ({ request }) => {
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token, 'EUR');
+      const accountResult = await createAccount(request, token, 'EUR');
+      const accountId = accountResult.body.id;
 
       // First deposit
       const firstDepositResponse = await request.post(`${BASE_URL}/deposits`, {
@@ -40,7 +42,7 @@ test.describe('Deposits Endpoint', () => {
       });
       const firstDepositBody = await firstDepositResponse.json();
       expect(firstDepositResponse.status()).toBe(201);
-      expect(firstDepositBody.newBalance).toBe(40);
+      expect(firstDepositBody.balance).toBe('40.00');
 
       // Second deposit
       const secondDepositResponse = await request.post(`${BASE_URL}/deposits`, {
@@ -53,7 +55,7 @@ test.describe('Deposits Endpoint', () => {
       });
       const secondDepositBody = await secondDepositResponse.json();
       expect(secondDepositResponse.status()).toBe(201);
-      expect(secondDepositBody.newBalance).toBe(100);
+      expect(secondDepositBody.balance).toBe('100.00');
     });
 
     test.describe('Validation and Error Handling', () => {
@@ -61,7 +63,8 @@ test.describe('Deposits Endpoint', () => {
         request,
       }) => {
         const token = await getAuthToken(request);
-        const accountId = await createAccount(request, token, 'EUR');
+        const accountResult = await createAccount(request, token, 'EUR');
+        const accountId = accountResult.body.id;
         const amount = 0;
 
         const response = await request.post(`${BASE_URL}/deposits`, {
@@ -82,7 +85,8 @@ test.describe('Deposits Endpoint', () => {
         request,
       }) => {
         const token = await getAuthToken(request);
-        const accountId = await createAccount(request, token, 'EUR');
+        const accountResult = await createAccount(request, token, 'EUR');
+        const accountId = accountResult.body.id;
         const amount = -10;
 
         const response = await request.post(`${BASE_URL}/deposits`, {
@@ -137,7 +141,8 @@ test.describe('Deposits Endpoint', () => {
       }) => {
         // Create account for user1
         const user1Token = await getAuthToken(request);
-        const user1AccountId = await createAccount(request, user1Token, 'EUR');
+        const user1AccountResult = await createAccount(request, user1Token, 'EUR');
+        const user1AccountId = user1AccountResult.body.id;
 
         // Get token for different user
         const user2Token = await getAuthToken(request, 'second-demo@qa.com', 'demo123');
@@ -160,7 +165,8 @@ test.describe('Deposits Endpoint', () => {
 
       test('POST /deposits: missing amount returns 400 with helpful message', async ({ request }) => {
         const token = await getAuthToken(request);
-        const accountId = await createAccount(request, token);
+        const accountResult = await createAccount(request, token);
+        const accountId = accountResult.body.id;
 
         const response = await request.post(`${BASE_URL}/deposits`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -176,7 +182,8 @@ test.describe('Deposits Endpoint', () => {
         request,
       }) => {
         const token = await getAuthToken(request);
-        const accountId = await createAccount(request, token);
+        const accountResult = await createAccount(request, token);
+        const accountId = accountResult.body.id;
 
         const response = await request.post(`${BASE_URL}/deposits`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -189,7 +196,9 @@ test.describe('Deposits Endpoint', () => {
       });
 
       test('POST /deposits: missing token returns 401 with UNAUTHORIZED', async ({ request }) => {
-        const accountId = await createAccount(request, await getAuthToken(request));
+        const authResponse = await getAuthToken(request);
+        const accountResult = await createAccount(request, authResponse.token);
+        const accountId = accountResult.body.id;
 
         const response = await request.post(`${BASE_URL}/deposits`, {
           data: {
@@ -206,7 +215,9 @@ test.describe('Deposits Endpoint', () => {
     });
 
     test('POST /deposits: invalid token returns 401 with UNAUTHORIZED', async ({ request }) => {
-      const accountId = await createAccount(request, await getAuthToken(request));
+      const authResponse = await getAuthToken(request);
+      const accountResult = await createAccount(request, authResponse.token);
+      const accountId = accountResult.body.id;
 
       const response = await request.post(`${BASE_URL}/deposits`, {
         headers: { Authorization: `Bearer invalid-token` },

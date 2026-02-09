@@ -7,7 +7,8 @@ test.describe('Transactions Endpoint', () => {
     test('GET /transactions: returns 200, with items, page(default=1), limit(default=20), total', async ({ request }) => {
       // Create account with 2 transactions
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token, 'EUR');
+      const accountResult = await createAccount(request, token, 'EUR');
+      const accountId = accountResult.body.id;
       await makeDeposit(request, token, accountId, 100, 'First deposit');
       await makeDeposit(request, token, accountId, 200, 'Second deposit');
 
@@ -27,7 +28,8 @@ test.describe('Transactions Endpoint', () => {
     test('Transaction Object shape: id, account_id, type, amount, reference, created_at', async ({ request }) => {
       // Create account with 1 transaction
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token, 'EUR');
+      const accountResult = await createAccount(request, token, 'EUR');
+      const accountId = accountResult.body.id;
       await makeDeposit(request, token, accountId, 150, 'Salary payment');
 
       // Fetch transactions
@@ -50,10 +52,12 @@ test.describe('Transactions Endpoint', () => {
       // Create 2 accounts with transactions
       const token = await getAuthToken(request);
 
-      const eurAccountId = await createAccount(request, token, 'EUR');
+      const eurAccountResult = await createAccount(request, token, 'EUR');
+      const eurAccountId = eurAccountResult.body.id;
       const amountEur = Math.round((Math.random() * (100 - 1) + 1) * 100) / 100; // Random amount between 1 and 100 with 2 decimals
 
-      const usdAccountId = await createAccount(request, token, 'USD');
+      const usdAccountResult = await createAccount(request, token, 'USD');
+      const usdAccountId = usdAccountResult.body.id;
       const amountUsd = Math.round((Math.random() * (1000 - 100) + 100) * 100) / 100; // Random amount between 100 and 1000 with 2 decimals
 
       await makeDeposit(request, token, eurAccountId, amountEur, 'Deposit to EUR account');
@@ -82,7 +86,8 @@ test.describe('Transactions Endpoint', () => {
     test('Limit parameter: limit=3 returns 3 items)', async ({ request }) => {
       // Create account with 5 transactions
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token);
+      const accountResult = await createAccount(request, token);
+      const accountId = accountResult.body.id;
       for (let i = 1; i <= 5; i++) {
         await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
       }
@@ -102,7 +107,8 @@ test.describe('Transactions Endpoint', () => {
     test('Pagination & Sorting: Correct subsets is returned and ordered by "created_at" descending', async ({ request }) => {
       // Create account with 10 transactions
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token);
+      const accountResult = await createAccount(request, token);
+      const accountId = accountResult.body.id;
       for (let i = 1; i <= 10; i++) {
         await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
       }
@@ -132,7 +138,8 @@ test.describe('Transactions Endpoint', () => {
     test('GET /transactions: Page beyond last returns empty items array', async ({ request }) => {
       // Create account with 3 transactions
       const token = await getAuthToken(request);
-      const accountId = await createAccount(request, token);
+      const accountResult = await createAccount(request, token);
+      const accountId = accountResult.body.id;
       for (let i = 1; i <= 3; i++) {
         await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
       }
@@ -153,7 +160,8 @@ test.describe('Transactions Endpoint', () => {
   test('GET /transactions: defaults (page=1, limit=20) work correctly', async ({ request }) => {
     // Create account with 25 transactions
     const token = await getAuthToken(request);
-    const accountId = await createAccount(request, token);
+    const accountResult = await createAccount(request, token);
+    const accountId = accountResult.body.id;
     for (let i = 1; i <= 25; i++) {
       await makeDeposit(request, token, accountId, i * 10, `Deposit# ${i}`);
     }
@@ -252,7 +260,8 @@ test.describe('Validation and Error Handling', () => {
   test('GET /transactions: user cannot access another user account - returns 403 FORBIDDEN', async ({ request }) => {
     // Create account for user1
     const tokenUser1 = await getAuthToken(request, 'demo@qa.com', 'demo123');
-    const accountId = await createAccount(request, tokenUser1);
+    const accountResult = await createAccount(request, tokenUser1);
+    const accountId = accountResult.body.id;
     await makeDeposit(request, tokenUser1, accountId, 100, 'User1 deposit');
     
     // Verify user1 can access their own transactions
