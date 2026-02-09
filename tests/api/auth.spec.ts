@@ -122,17 +122,14 @@ test.describe('Auth Endpoint', () => {
       // Extracting the userId
       const {id : userId} = await meResponse.json();
       
-      if (!JWT_SECRET) {
-        throw new Error('Check that your JWT_SECRET is set in the .env file');
-      }
-      
       // Create expired token with real user ID
       const expiredToken = jwt.sign(
         { userId },
-        JWT_SECRET,
+        JWT_SECRET!,
         { expiresIn: '-1h' } // Negative time = expired an hour ago
       );
       
+      // Testing Authentication with the expired token
       const response = await request.get(`${BASE_URL}/me`, {
         headers: {
           Authorization: `Bearer ${expiredToken}`,
