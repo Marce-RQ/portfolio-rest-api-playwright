@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../db/pool';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET ;
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 // POST /auth/login
 router.post('/login', async (req: Request, res: Response) => {
